@@ -159,6 +159,20 @@ impl Default for PALevel {
     }
 }
 
+/// Supported address width.
+#[derive(Debug, PartialEq, Copy, Clone)]
+pub enum AddressWidth {
+    W3Bytes,
+    W4Bytes,
+    W5Bytes,
+}
+
+impl Default for AddressWidth {
+    fn default() -> AddressWidth {
+        AddressWidth::W5Bytes
+    }
+}
+
 /// Receiver mode configuration
 #[derive(Debug, Default)]
 pub struct RXConfig {
@@ -174,6 +188,7 @@ pub struct RXConfig {
     pub channel: u8,
     /// Powel level, defaults to `PALevel::Min`.
     pub pa_level: PALevel,
+    pub address_width: AddressWidth,
     /// Pipe 0 address
     ///
     /// This is the receiving base address.
@@ -232,6 +247,7 @@ pub struct TXConfig {
     /// 0 <= `retry_delay` <= 15. Default is 0, recommended is > 1.
     /// Any value above 15 is capped to 15.
     pub retry_delay: u8, // [0, 15]
+    pub address_width: AddressWidth,
     /// Destination address, should match an address on the receiver end.
     ///
     /// This is also the address on which ACK packets are received.
@@ -275,6 +291,8 @@ const CONFIG: Register = 0;
 const EN_AA: Register = 0x01;
 // Enabled RX addresses, p 54
 const EN_RXADDR: Register = 0x02;
+// Setup of Address Widths, p 55
+const SETUP_AW: Register = 0x03;
 // Setup of automatic retransmission, p 55
 const SETUP_RETR: Register = 0x04;
 // Channel, p 55
@@ -376,6 +394,13 @@ impl NRF24L01 {
         self.setup_rf(config.data_rate, config.pa_level)?;
         // set channel
         self.set_channel(config.channel)?;
+        // set address width
+        let aw_bits: u8 = match config.address_width {
+            AddressWidth::W3Bytes => 0b0000_0001,
+            AddressWidth::W4Bytes => 0b0000_0010,
+            AddressWidth::W5Bytes => 0b0000_0011,
+        };
+        self.write_register(SETUP_AW, aw_bits)?;
         // set Pipe 0 address
         self.set_full_address(RX_ADDR_P0, config.pipe0_address)?;
         let mut enabled = 1u8;
@@ -417,6 +442,13 @@ impl NRF24L01 {
         self.setup_rf(config.data_rate, config.pa_level)?;
         // set channel
         self.set_channel(config.channel)?;
+        // set address width
+        let aw_bits: u8 = match config.address_width {
+            AddressWidth::W3Bytes => 0b0000_0001,
+            AddressWidth::W4Bytes => 0b0000_0010,
+            AddressWidth::W5Bytes => 0b0000_0011,
+        };
+        self.write_register(SETUP_AW, aw_bits)?;
         // set destination and Pipe 0 address
         self.set_full_address(RX_ADDR_P0, config.pipe0_address)?;
         self.set_full_address(TX_ADDR, config.pipe0_address)?;
