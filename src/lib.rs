@@ -185,13 +185,13 @@ pub struct RXConfig {
     /// The address is in little endian order: the first byte is the least significant one.
     ///
     /// You must provide a valid address for Pipe 0.
-    pub pipe0_address: [u8; 5],
+    pub pipe0_address: [u8; 4],
     /// Pipe 1 address, defaults to None (disabled)
     ///
     /// All pipes 2-5 share the 4 most significant bytes with the pipe 1 address, so
     /// you only need to provide the least significant byte to enable one of those pipes or
     /// set it to None to disable it (default).
-    pub pipe1_address: Option<[u8; 5]>,
+    pub pipe1_address: Option<[u8; 4]>,
     /// Pipe 2 LSB, defaults to None (disabled)
     pub pipe2_addr_lsb: Option<u8>,
     /// Pipe 3 LSB, defaults to None (disabled)
@@ -236,7 +236,7 @@ pub struct TXConfig {
     ///
     /// This is also the address on which ACK packets are received.
     /// The address is in little endian order: the first byte is the least significant one.
-    pub pipe0_address: [u8; 5],
+    pub pipe0_address: [u8; 4],
 }
 
 /// The Operating mode, either Receiver or Transmitter.
@@ -275,6 +275,7 @@ const CONFIG: Register = 0;
 const EN_AA: Register = 0x01;
 // Enabled RX addresses, p 54
 const EN_RXADDR: Register = 0x02;
+const SETUP_AW: Register = 0x03;
 // Setup of automatic retransmission, p 55
 const SETUP_RETR: Register = 0x04;
 // Channel, p 55
@@ -363,9 +364,9 @@ impl NRF24L01 {
         }
     }
 
-    fn set_full_address(&self, pipe: Register, address: [u8; 5]) -> io::Result<()> {
-        let mut response_buffer = [0u8; 6];
-        let mut command = [W_REGISTER | pipe, 0, 0, 0, 0, 0];
+    fn set_full_address(&self, pipe: Register, address: [u8; 4]) -> io::Result<()> {
+        let mut response_buffer = [0u8; 5];
+        let mut command = [W_REGISTER | pipe, 0, 0, 0, 0];
         command[1..].copy_from_slice(&address);
         self.send_command(&command, &mut response_buffer)
     }
@@ -480,6 +481,8 @@ impl NRF24L01 {
         self.ce.down()?;
         // auto acknowlegement
         self.write_register(EN_AA, 0b0011_1111)?;
+        // 4 byte address width
+        self.write_register(SETUP_AW, 0b0000_0010)?;
         // dynamic payload and payload with ACK
         self.write_register(DYNPD, 0b0011_1111)?;
         self.write_register(FEATURE, 0b0000_0110)?;
