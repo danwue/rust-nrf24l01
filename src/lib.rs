@@ -259,7 +259,7 @@ const R_RX_PAYLOAD: Command = 0b0110_0001;
 // Read the size of the packet on top of input FIFO
 const R_RX_PL_WID: Command = 0b0110_0000;
 // Push a packet to output FIFO
-const W_TX_PAYLOAD: Command = 0b1010_0000;
+const W_TX_PAYLOAD_NO_ACK: Command = 0b1011_0000;
 // Push an ACK packet to output FIFO
 // Use the last three bits to specify the pipe number
 const W_ACK_PAYLOAD: Command = 0b1010_1000;
@@ -658,7 +658,7 @@ impl NRF24L01 {
                 let actual_pipe_num: u8 = if pipe_num < 6 { pipe_num } else { 5 };
                 W_ACK_PAYLOAD | actual_pipe_num
             } else {
-                W_TX_PAYLOAD
+                W_TX_PAYLOAD_NO_ACK
             };
             if data.len() > 32 {
                 Err(io::Error::new(
