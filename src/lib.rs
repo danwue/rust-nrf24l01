@@ -485,7 +485,8 @@ impl NRF24L01 {
         self.write_register(SETUP_AW, 0b0000_0010)?;
         // dynamic payload and payload with ACK
         self.write_register(DYNPD, 0b0011_1111)?;
-        self.write_register(FEATURE, 0b0000_0110)?;
+        // disable automatic ACK
+        self.write_register(FEATURE, 0b0000_0111)?;
 
         // Mode specific configuration
         match *mode {
