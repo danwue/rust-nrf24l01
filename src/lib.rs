@@ -702,14 +702,25 @@ impl NRF24L01 {
             self.ce.down()?;
             let mut status = 0u8;
             let mut observe = 0u8;
-            // wait for transmit
-            while status & 0x20 == 0 {
-                // wait at least 10us
-                // sleep(Duration::new(0, 10_000));
+            // wait for ACK
+            while status & 0x30 == 0 {
+                // wait at least 360us
+                sleep(Duration::new(0, 360_000));
                 let outcome = self.read_register(OBSERVE_TX)?;
                 status = outcome.0;
                 observe = outcome.1;
             }
+            // check MAX_RT
+            if status & 0x10 > 0 {
+                // failure
+                // clear MAX_RT
+                self.write_register(STATUS, 0x10)?;
+                // force return
+                return Err(io::Error::new(
+                    io::ErrorKind::TimedOut,
+                    "Maximum number of retries reached!",
+                ));
+            };
             // Success
             counter += observe & 0x0f;
             let (_, fifo_status) = self.read_register(FIFO_STATUS)?;
