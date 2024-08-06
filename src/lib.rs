@@ -117,6 +117,7 @@ mod rpi_ce;
 #[cfg(not(feature = "rpi_accel"))]
 mod sysfs_ce;
 
+use core::time;
 use std::io;
 use std::thread::sleep;
 use std::time::Duration;
@@ -730,6 +731,28 @@ impl NRF24L01 {
         self.write_register(STATUS, 0x20)?;
         // if all sent, return retry counter
         Ok(counter)
+    }
+
+    pub fn send_and_enter_rx_mode(&mut self) -> io::Result<()> {
+        // send with a 10us pulse, moves to TX settling 
+        self.ce.up()?;
+        sleep(Duration::from_micros(10));
+        self.ce.down()?;
+
+        // Expected time: 130 + 8*(1+4+16+2) + 9 = 360us (includes settling and transmission)
+        sleep(Duration::from_micros(360));
+
+        // wait for MAX_RT and TX_DS interrupts
+        while self.read_register(OBSERVE_TX)?.0 & 0x30 == 0 {
+            sleep(Duration::from_micros(100));
+        }
+        // clear interrupts
+        self.write_register(STATUS, 0x30)?;
+
+        // Set PRIM_RX and enabling listening mode
+        self.base_config = self.base_config | 1;
+        self.power_up()?;
+        self.listen()
     }
 
     /// Clear input queue.
