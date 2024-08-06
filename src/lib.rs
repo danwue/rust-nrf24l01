@@ -500,18 +500,6 @@ impl NRF24L01 {
         })
     }
 
-    pub fn enable_rx(&mut self) -> io::Result<()> {
-        self.ce.down()?;
-        self.base_config = 0b0011_1101;
-        self.power_up()
-    }
-
-    pub fn enable_tx(&mut self) -> io::Result<()> {
-        self.ce.down()?;
-        self.base_config = 0b0100_1100;
-        self.power_up()
-    }
-
     /// Scan all channel.
     ///
     /// This function scans all channels ``nb_iter`` times, waiting ``wait_ms``
